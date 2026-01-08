@@ -412,8 +412,11 @@
         /* レスポンシブ */
         @media (max-width: 600px) {
             header { padding: 1rem; }
-            /* スマホでボトルアイコンを非表示 */
+            /* スマホでアイコンを消し */
             .logo i { display: none; }
+            /* スマホでサブタイトルを消す */
+            .logo-sub { display: none; }
+            
             nav button { margin-left: 1rem; }
             .card-meta { font-size: 0.8rem; }
         }
@@ -438,7 +441,7 @@
     <header>
         <div class="logo">
             <i class="fa-solid fa-wine-bottle"></i>
-            <span>naniCH -告発＆晒し-</span>
+            <span>naniCH<span class="logo-sub"> -告発＆晒し-</span></span>
         </div>
         <nav>
             <button id="nav-feed" class="active" onclick="switchTab('feed')">
