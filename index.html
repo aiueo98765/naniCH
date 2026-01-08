@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>naniCH -匿名告発・共有-</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger-color: #ef4444;
+            --border-color: #334155;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ヘッダー */
+        header {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+
+        nav button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-left: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        nav button:hover, nav button.active {
+            color: var(--text-primary);
+        }
+
+        nav button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+        }
+
+        /* メインコンテンツ */
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* セクション切り替え */
+        .section {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* フォームデザイン */
+        .form-container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 装飾的な背景効果 */
+        .form-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .form-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .form-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: rgba(15, 23, 42, 0.5);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* フィードタブ切り替え */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        /* カードデザイン */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .card-body {
+            margin-bottom: 1.2rem;
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .card-text {
+            white-space: pre-wrap;
+            color: #cbd5e1;
+        }
+
+        .tag {
+            display: inline-block;
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--accent-color);
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tag.alert {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 1.2rem;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            transition: color 0.2s, transform 0.1s;
+        }
+
+        .action-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.liked { color: #f43f5e; }
+        .action-btn.bookmarked { color: #fbbf24; }
+
+        /* ローディングスピナー */
+        .spinner {
+            display: none;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s cubic-bezier(0.55, 0.055, 0.675, 0.19) infinite;
+            margin: 3rem auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--accent-color);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+        }
+
+        /* アニメーション用：ボトル投げ込み */
+        @keyframes tossBottle {
+            0% { transform: scale(1) rotate(0); opacity: 1; }
+            50% { transform: scale(0.5) translate(200px, -200px) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(0) translate(400px, 100px) rotate(360deg); opacity: 0; }
+        }
+
+        .tossing {
+            animation: tossBottle 0.8s ease-in forwards;
+            pointer-events: none;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            header { padding: 1rem; }
+            .logo span { display: none; }
+            nav button { margin-left: 1rem; }
+            .card-meta { font-size: 0.8rem; }
+        }
+        
+        /* 警告メッセージ（実名投稿抑制用） */
+        .warning-box {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: start;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-wine-bottle"></i>
+            <span>naniCH -告発＆晒し-</span>
+        </div>
+        <nav>
+            <button id="nav-feed" class="active" onclick="switchTab('feed')">
+                <i class="fa-solid fa-list"></i> 一覧
+            </button>
+            <button id="nav-post" onclick="switchTab('post')">
+                <i class="fa-solid fa-pen-nib"></i> 告発・投稿
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="post-section" class="section">
+            <div class="form-container" id="form-container">
+                <div class="form-header">
+                    <h2><i class="fa-solid fa-paper-plane"></i> デジタルボトルを流す</h2>
+                    <p>あなたの声は匿名で海へ流されます。</p>
+                </div>
+
+                <div class="warning-box">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-top: 3px;"></i>
+                    <div>
+                        <strong>重要:</strong> 実名や特定の個人を直ちに特定できる情報の書き込みは、法的責任を問われる可能性があります。事実関係の記録や体験の共有として記述してください。
+                    </div>
+                </div>
+
+                <form id="bottleForm" onsubmit="submitBottle(event)">
+                    <div class="form-group">
+                        <label for="category">カテゴリ</label>
+                        <select id="category" required>
+                            <option value="いじめ告発">いじめ告発・被害報告</option>
+                            <option value="ハラスメント">ハラスメント（パワハラ・セクハラ）</option>
+                            <option value="人間関係">学校・職場の人間関係</option>
+                            <option value="悩み相談">誰かへの相談</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">組織名・学校名など（任意）</label>
+                        <input type="text" id="location" placeholder="例: 〇〇市立〇〇中学校、株式会社〇〇">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="target-role">対象の所属・役職・学年（任意）</label>
+                        <input type="text" id="target-role" placeholder="例: 2年3組、テニス部顧問、営業部部長">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="title">相手のフルネーム</label>
+                        <input type="text" id="title" placeholder="ヤツの名前…" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content">詳細内容</label>
+                        <textarea id="content" placeholder="何が起きたか、どのような被害があったか、詳細を記入してください..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> ボトルを流す
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="feed-section" class="section active">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="filterFeed('new')">新着順</button>
+                <button class="tab-btn" onclick="filterFeed('popular')">人気順</button>
+                <button class="tab-btn" onclick="filterFeed('bookmarked')">ブックマーク</button>
+            </div>
+
+            <div id="loading" class="spinner"></div>
+            <div id="feed-container">
+                </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">メッセージ</span>
+    </div>
+
+    <script>
+        // データストア（ダミーデータを削除し、空配列に変更）
+        const MOCK_DATA = [];
+
+        // 状態管理
+        let posts = JSON.parse(localStorage.getItem('bottlemail_posts')) || [];
+        let bookmarks = JSON.parse(localStorage.getItem('bottlemail_bookmarks')) || [];
+        let currentFilter = 'new';
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFeed();
+        });
+
+        // タブ切り替え（ナビゲーション）
+        function switchTab(tabName) {
+            const feedNav = document.getElementById('nav-feed');
+            const postNav = document.getElementById('nav-post');
+            const feedSection = document.getElementById('feed-section');
+            const postSection = document.getElementById('post-section');
+
+            if (tabName === 'feed') {
+                feedNav.classList.add('active');
+                postNav.classList.remove('active');
+                feedSection.classList.add('active');
+                postSection.classList.remove('active');
+                renderFeed();
+            } else {
+                postNav.classList.add('active');
+                feedNav.classList.remove('active');
+                postSection.classList.add('active');
+                feedSection.classList.remove('active');
+            }
+        }
+
+        // フィードのフィルタリング
+        function filterFeed(type) {
+            currentFilter = type;
+            // タブスタイルの更新
+            const buttons = document.querySelectorAll('.tabs .tab-btn');
+            buttons.forEach(btn => {
+                if(btn.textContent.includes(
+                    type === 'new' ? '新着' : type === 'popular' ? '人気' : 'ブックマーク'
+                )) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // ローディング演出
+            const container = document.getElementById('feed-container');
+            const spinner = document.getElementById('loading');
+            container.style.opacity = '0';
+            spinner.style.display = 'block';
+
+            setTimeout(() => {
+                spinner.style.display = 'none';
+                renderFeed();
+                container.style.opacity = '1';
+            }, 400); // 擬似的な読み込み時間
+        }
+
+        // カード生成・描画
+        function renderFeed() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = '';
+
+            let displayPosts = [...posts];
+
+            if (currentFilter === 'new') {
+                displayPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } else if (currentFilter === 'popular') {
+                displayPosts.sort((a, b) => b.likes - a.likes);
+            } else if (currentFilter === 'bookmarked') {
+                displayPosts = displayPosts.filter(p => bookmarks.includes(p.id));
+                if (displayPosts.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:2rem;">ブックマークした投稿はありません。</div>';
+                    return;
+                }
+            }
+
+            // 投稿が0件の場合のメッセージ（新規追加）
+            if (displayPosts.length === 0 && currentFilter !== 'bookmarked') {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:3rem;">まだボトルは流れてきていません。<br>最初の投稿をしてみましょう。</div>';
+                return;
+            }
+
+            displayPosts.forEach(post => {
+                const isBookmarked = bookmarks.includes(post.id);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-meta">
+                            <span class="tag ${post.category === 'いじめ告発' ? 'alert' : ''}">${post.category}</span>
+                            <div class="meta-item"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(post.location)}</div>
+                            <div class="meta-item"><i class="fa-solid fa-user-tag"></i> ${escapeHtml(post.role)}</div>
+                        </div>
+                        <div class="date">${formatDate(post.date)}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">${escapeHtml(post.title)}</div>
+                        <div class="card-text">${escapeHtml(post.content)}</div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="card-actions">
+                            <button class="action-btn" onclick="toggleLike(this, ${post.id})">
+                                <i class="fa-regular fa-heart"></i> <span>${post.likes}</span>
+                            </button>
+                            <button class="action-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark(this, ${post.id})">
+                                <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
+                            </button>
+                        </div>
+                        <button class="action-btn" onclick="sharePost(${post.id})">
+                            <i class="fa-solid fa-share-nodes"></i> 共有
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 投稿機能
+        function submitBottle(event) {
+            event.preventDefault();
+            
+            // 演出
+            const formContainer = document.getElementById('form-container');
+            formContainer.classList.add('tossing');
+
+            // データ取得
+            const newPost = {
+                id: Date.now(),
+                category: document.getElementById('category').value,
+                location: document.getElementById('location').value || "場所不明",
+                role: document.getElementById('target-role').value || "不明",
+                title: document.getElementById('title').value,
+                content: document.getElementById('content').value,
+                date: new Date().toISOString(),
+                likes: 0,
+                comments: 0
+            };
+
+            // データ保存
+            posts.unshift(newPost);
+            localStorage.setItem('bottlemail_posts', JSON.stringify(posts));
+
+            // リセットと遷移
+            setTimeout(() => {
+                formContainer.classList.remove('tossing');
+                document.getElementById('bottleForm').reset();
+                showToast("ボトルを海に流しました");
+                switchTab('feed');
+            }, 800);
+        }
+
+        // ブックマーク切り替え
+        function toggleBookmark(btn, id) {
+            const icon = btn.querySelector('i');
+            if (bookmarks.includes(id)) {
+                bookmarks = bookmarks.filter(bId => bId !== id);
+                icon.classList.remove('fa-solid');
+                icon.classList.add('fa-regular');
+                btn.classList.remove('bookmarked');
+                showToast("ブックマークを解除しました");
+            } else {
+                bookmarks.push(id);
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid');
+                btn.classList.add('bookmarked');
+                showToast("ブックマークしました");
+            }
+            localStorage.setItem('bottlemail_bookmarks', JSON.stringify(bookmarks));
+            
+            // ブックマーク一覧表示中ならリストを更新
+            if (currentFilter === 'bookmarked') {
+                renderFeed();
+            }
+        }
+
+        // いいね切り替え（簡易的）
+        function toggleLike(btn, id) {
+            const icon = btn.querySelector('i');
+            const countSpan = btn.querySelector('span');
+            let count = parseInt(countSpan.textContent);
+
+            if (btn.classList.contains('liked')) {
+                btn.classList.remove('liked');
+                icon.classList.remove('fa-solid');
+                icon.classList.add('fa-regular');
+                count--;
+            } else {
+                btn.classList.add('liked');
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid');
+                count++;
+                // 実際はここでAPIを叩いてDB更新などを想定
+                const post = posts.find(p => p.id === id);
+                if(post) post.likes = count;
+                localStorage.setItem('bottlemail_posts', JSON.stringify(posts));
+            }
+            countSpan.textContent = count;
+        }
+
+        // シェア機能
+        function sharePost(id) {
+            const post = posts.find(p => p.id === id);
+            const text = `【BottleMail】\n${post.title}\n${post.content.substring(0, 30)}...`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'BottleMail',
+                    text: text,
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                // PCなどでWeb Share APIが使えない場合
+                navigator.clipboard.writeText(text + "\n" + window.location.href);
+                showToast("リンクをコピーしました");
+            }
+        }
+
+        // ユーティリティ: XSS対策
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        // ユーティリティ: 日付フォーマット
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = (now - date) / 1000; // 秒
+
+            if (diff < 60) return "たった今";
+            if (diff < 3600) return `${Math.floor(diff / 60)}分前`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}時間前`;
+            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // トースト通知表示
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
