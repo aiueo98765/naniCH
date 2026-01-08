@@ -525,19 +525,109 @@
         <span id="toast-message">メッセージ</span>
     </div>
 
-    <script>
-        // データストア（ダミーデータを削除し、空配列に変更）
-        const MOCK_DATA = [];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+        // アプリに必要なFirestore機能を同じバージョンからインポート
+        import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
+        // あなたのWebアプリのFirebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyCS0HmGJ8QBKo--vhjbyg4qaBZu-DY6Ez0",
+            authDomain: "nanich-73d8e.firebaseapp.com",
+            projectId: "nanich-73d8e",
+            storageBucket: "nanich-73d8e.firebasestorage.app",
+            messagingSenderId: "330182228208",
+            appId: "1:330182228208:web:5b2613b115ecfeafee2a35",
+            measurementId: "G-YV3GQRMB82"
+        };
+
+        // Firebaseの初期化
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            const analytics = getAnalytics(app);
+            db = getFirestore(app);
+            console.log("Firebase initialized");
+        } catch (e) {
+            console.error("Firebaseの初期化エラー:", e);
+        }
+
+        // グローバル変数として使えるようにwindowに紐付け（module外から呼ぶため）
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+        window.serverTimestamp = serverTimestamp;
+        window.orderBy = orderBy;
+        window.query = query;
+    </script>
+
+    <script>
         // 状態管理
-        let posts = JSON.parse(localStorage.getItem('bottlemail_posts')) || [];
+        let posts = [];
         let bookmarks = JSON.parse(localStorage.getItem('bottlemail_bookmarks')) || [];
         let currentFilter = 'new';
+        let unsubscribe = null; // リアルタイムリスナー解除用
 
         // 初期化
         document.addEventListener('DOMContentLoaded', () => {
-            renderFeed();
+            if (typeof window.db === 'undefined') {
+                // Firebase未設定時のフォールバック
+                document.getElementById('feed-container').innerHTML = 
+                    '<div style="text-align:center; padding:2rem; color:#ef4444;">' +
+                    '<i class="fa-solid fa-triangle-exclamation"></i><br>' +
+                    'Firebaseの設定エラー。<br>コンソールを確認してください。</div>';
+                return;
+            }
+            // リアルタイムリスナー開始
+            setupRealtimeListener();
         });
+
+        // リアルタイムリスナーの設定（Firebase）
+        function setupRealtimeListener() {
+            const container = document.getElementById('feed-container');
+            const spinner = document.getElementById('loading');
+            
+            // 既存のリスナーがあれば解除
+            if (unsubscribe) unsubscribe();
+
+            spinner.style.display = 'block';
+            container.style.opacity = '0';
+
+            // Firestoreからデータを取得（作成日時の新しい順）
+            const q = window.query(window.collection(window.db, "posts"), window.orderBy("date", "desc"));
+
+            unsubscribe = window.onSnapshot(q, (snapshot) => {
+                posts = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // FirestoreのTimestampをDate文字列に変換
+                    const dateStr = data.date && data.date.toDate ? data.date.toDate().toISOString() : new Date().toISOString();
+                    posts.push({
+                        id: doc.id, // FirestoreのドキュメントID
+                        ...data,
+                        date: dateStr
+                    });
+                });
+                
+                spinner.style.display = 'none';
+                container.style.opacity = '1';
+                renderFeed(); // データ更新時に再描画
+            }, (error) => {
+                console.error("データ取得エラー:", error);
+                // 権限エラーなどが起きた場合の表示
+                if (error.code === 'permission-denied') {
+                     spinner.style.display = 'none';
+                     container.innerHTML = '<div style="text-align:center; padding:2rem; color:#ef4444;">データベースの権限エラーです。<br>FirebaseコンソールでFirestoreのルールをテストモードにしてください。</div>';
+                     container.style.opacity = '1';
+                } else {
+                    spinner.style.display = 'none';
+                }
+            });
+        }
 
         // タブ切り替え（ナビゲーション）
         function switchTab(tabName) {
@@ -575,17 +665,8 @@
                 }
             });
 
-            // ローディング演出
-            const container = document.getElementById('feed-container');
-            const spinner = document.getElementById('loading');
-            container.style.opacity = '0';
-            spinner.style.display = 'block';
-
-            setTimeout(() => {
-                spinner.style.display = 'none';
-                renderFeed();
-                container.style.opacity = '1';
-            }, 400); // 擬似的な読み込み時間
+            // 再描画
+            renderFeed();
         }
 
         // カード生成・描画
@@ -596,6 +677,7 @@
             let displayPosts = [...posts];
 
             if (currentFilter === 'new') {
+                // すでにFirestoreでソート済みだが、念のため
                 displayPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
             } else if (currentFilter === 'popular') {
                 displayPosts.sort((a, b) => b.likes - a.likes);
@@ -607,7 +689,7 @@
                 }
             }
 
-            // 投稿が0件の場合のメッセージ（新規追加）
+            // 投稿が0件の場合
             if (displayPosts.length === 0 && currentFilter !== 'bookmarked') {
                 container.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:3rem;">まだボトルは流れてきていません。<br>最初の投稿をしてみましょう。</div>';
                 return;
@@ -633,14 +715,14 @@
                     </div>
                     <div class="card-footer">
                         <div class="card-actions">
-                            <button class="action-btn" onclick="toggleLike(this, ${post.id})">
+                            <button class="action-btn" onclick="toggleLike(this, '${post.id}', ${post.likes})">
                                 <i class="fa-regular fa-heart"></i> <span>${post.likes}</span>
                             </button>
-                            <button class="action-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark(this, ${post.id})">
+                            <button class="action-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="toggleBookmark(this, '${post.id}')">
                                 <i class="${isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i>
                             </button>
                         </div>
-                        <button class="action-btn" onclick="sharePost(${post.id})">
+                        <button class="action-btn" onclick="sharePost('${post.id}')">
                             <i class="fa-solid fa-share-nodes"></i> 共有
                         </button>
                     </div>
@@ -649,41 +731,50 @@
             });
         }
 
-        // 投稿機能
-        function submitBottle(event) {
+        // 投稿機能（Firebaseへ送信）
+        async function submitBottle(event) {
             event.preventDefault();
             
+            if (typeof window.db === 'undefined') {
+                showToast("Firebase設定エラー: 投稿できません");
+                return;
+            }
+
             // 演出
             const formContainer = document.getElementById('form-container');
             formContainer.classList.add('tossing');
 
             // データ取得
             const newPost = {
-                id: Date.now(),
                 category: document.getElementById('category').value,
                 location: document.getElementById('location').value || "場所不明",
                 role: document.getElementById('target-role').value || "不明",
                 title: document.getElementById('title').value,
                 content: document.getElementById('content').value,
-                date: new Date().toISOString(),
+                date: window.serverTimestamp(), // サーバー時間を使用
                 likes: 0,
                 comments: 0
             };
 
-            // データ保存
-            posts.unshift(newPost);
-            localStorage.setItem('bottlemail_posts', JSON.stringify(posts));
+            try {
+                // Firestoreへ保存
+                await window.addDoc(window.collection(window.db, "posts"), newPost);
 
-            // リセットと遷移
-            setTimeout(() => {
+                // リセットと遷移
+                setTimeout(() => {
+                    formContainer.classList.remove('tossing');
+                    document.getElementById('bottleForm').reset();
+                    showToast("ボトルを海に流しました");
+                    switchTab('feed');
+                }, 800);
+            } catch (e) {
+                console.error("投稿エラー", e);
+                showToast("送信に失敗しました");
                 formContainer.classList.remove('tossing');
-                document.getElementById('bottleForm').reset();
-                showToast("ボトルを海に流しました");
-                switchTab('feed');
-            }, 800);
+            }
         }
 
-        // ブックマーク切り替え
+        // ブックマーク切り替え（ローカルストレージのみ）
         function toggleBookmark(btn, id) {
             const icon = btn.querySelector('i');
             if (bookmarks.includes(id)) {
@@ -707,33 +798,37 @@
             }
         }
 
-        // いいね切り替え（簡易的）
-        function toggleLike(btn, id) {
-            const icon = btn.querySelector('i');
-            const countSpan = btn.querySelector('span');
-            let count = parseInt(countSpan.textContent);
-
+        // いいね切り替え（Firestore更新）
+        async function toggleLike(btn, id, currentLikes) {
             if (btn.classList.contains('liked')) {
-                btn.classList.remove('liked');
-                icon.classList.remove('fa-solid');
-                icon.classList.add('fa-regular');
-                count--;
-            } else {
-                btn.classList.add('liked');
-                icon.classList.remove('fa-regular');
-                icon.classList.add('fa-solid');
-                count++;
-                // 実際はここでAPIを叩いてDB更新などを想定
-                const post = posts.find(p => p.id === id);
-                if(post) post.likes = count;
-                localStorage.setItem('bottlemail_posts', JSON.stringify(posts));
+                // 簡易的な連打防止（本来はDB側でユーザーID管理が必要）
+                return; 
             }
-            countSpan.textContent = count;
+
+            // UIを先に更新
+            btn.classList.add('liked');
+            const icon = btn.querySelector('i');
+            icon.classList.remove('fa-regular');
+            icon.classList.add('fa-solid');
+            const countSpan = btn.querySelector('span');
+            countSpan.textContent = currentLikes + 1;
+
+            try {
+                // Firestore更新
+                const postRef = window.doc(window.db, "posts", id);
+                await window.updateDoc(postRef, {
+                    likes: currentLikes + 1
+                });
+            } catch (e) {
+                console.error("いいね更新エラー", e);
+            }
         }
 
         // シェア機能
         function sharePost(id) {
             const post = posts.find(p => p.id === id);
+            if (!post) return;
+            
             const text = `【BottleMail】\n${post.title}\n${post.content.substring(0, 30)}...`;
             
             if (navigator.share) {
